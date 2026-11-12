@@ -1,3 +1,4 @@
+
 package com.jcaa.usersmanagement.infrastructure.adapter.persistence.repository;
 
 import com.jcaa.usersmanagement.application.port.out.DeleteUserPort;
@@ -29,7 +30,7 @@ import java.util.Optional;
 @Repository
 @RequiredArgsConstructor
 public class UserRepositoryMySQL
-    implements SaveUserPort,
+        implements SaveUserPort,
         UpdateUserPort,
         GetUserByIdPort,
         GetUserByEmailPort,
@@ -37,32 +38,28 @@ public class UserRepositoryMySQL
         DeleteUserPort {
 
   private static final String SQL_INSERT =
-      "INSERT INTO users "
-      + "(id, name, email, password, role, status, created_at, updated_at) "
-      + "VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())";
+          "INSERT INTO users "
+                  + "(id, name, email, password, role, status, created_at, updated_at) "
+                  + "VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())";
 
   private static final String SQL_UPDATE =
-      "UPDATE users SET name = ?, email = ?, password = ?, role = ?, status = ?, updated_at = NOW() "
-      + "WHERE id = ?";
+          "UPDATE users SET name = ?, email = ?, password = ?, role = ?, status = ?, updated_at = NOW() "
+                  + "WHERE id = ?";
 
   private static final String SQL_SELECT_BY_ID =
-      "SELECT id, name, email, password, role, status, created_at, updated_at "
-      + "FROM users "
-      + "WHERE id = ? LIMIT 1";
+          "SELECT id, name, email, password, role, status, created_at, updated_at "
+                  + "FROM users WHERE id = ? LIMIT 1";
 
   private static final String SQL_SELECT_BY_EMAIL =
-      "SELECT id, name, email, password, role, status, created_at, updated_at "
-      + "FROM users "
-      + "WHERE email = ? LIMIT 1";
+          "SELECT id, name, email, password, role, status, created_at, updated_at "
+                  + "FROM users WHERE email = ? LIMIT 1";
 
   private static final String SQL_SELECT_ALL =
-      "SELECT id, name, email, password, role, status, created_at, updated_at "
-      + "FROM users "
-      + "ORDER BY name ASC";
+          "SELECT id, name, email, password, role, status, created_at, updated_at "
+                  + "FROM users ORDER BY name ASC";
 
   private static final String SQL_DELETE =
-        "DELETE FROM users "
-        + "WHERE id = ?";
+          "DELETE FROM users WHERE id = ?";
 
   private final DataSource dataSource;
 
@@ -84,14 +81,21 @@ public class UserRepositoryMySQL
   public Optional<UserModel> getById(final UserId userId) {
     try (final Connection connection = dataSource.getConnection();
          final PreparedStatement statement = connection.prepareStatement(SQL_SELECT_BY_ID)) {
+
       statement.setString(1, userId.value());
-      final ResultSet resultSet = statement.executeQuery();
-      if (!resultSet.next()) {
-        return Optional.empty();
+
+      try (final ResultSet resultSet = statement.executeQuery()) {
+        if (!resultSet.next()) {
+          return Optional.empty();
+        }
+
+        return Optional.of(
+                UserPersistenceMapper.fromResultSetToModel(resultSet));
       }
-      return Optional.of(UserPersistenceMapper.fromResultSetToModel(resultSet));
+
     } catch (final SQLException exception) {
-      throw PersistenceException.becauseFindByIdFailed(userId.value(), exception);
+      throw PersistenceException.becauseUserFindByIdFailed(
+              userId.value(), exception);
     }
   }
 
@@ -99,25 +103,34 @@ public class UserRepositoryMySQL
   public Optional<UserModel> getByEmail(final UserEmail email) {
     try (final Connection connection = dataSource.getConnection();
          final PreparedStatement statement = connection.prepareStatement(SQL_SELECT_BY_EMAIL)) {
+
       statement.setString(1, email.value());
-      final ResultSet resultSet = statement.executeQuery();
-      if (!resultSet.next()) {
-        return Optional.empty();
+
+      try (final ResultSet resultSet = statement.executeQuery()) {
+        if (!resultSet.next()) {
+          return Optional.empty();
+        }
+
+        return Optional.of(
+                UserPersistenceMapper.fromResultSetToModel(resultSet));
       }
-      return Optional.of(UserPersistenceMapper.fromResultSetToModel(resultSet));
+
     } catch (final SQLException exception) {
-      throw PersistenceException.becauseFindByEmailFailed(email.value(), exception);
+      throw PersistenceException.becauseUserFindByEmailFailed(
+              email.value(), exception);
     }
   }
 
   @Override
   public List<UserModel> getAll() {
     try (final Connection connection = dataSource.getConnection();
-         final PreparedStatement statement = connection.prepareStatement(SQL_SELECT_ALL)) {
-      final ResultSet resultSet = statement.executeQuery();
+         final PreparedStatement statement = connection.prepareStatement(SQL_SELECT_ALL);
+         final ResultSet resultSet = statement.executeQuery()) {
+
       return UserPersistenceMapper.fromResultSetToModelList(resultSet);
+
     } catch (final SQLException exception) {
-      throw PersistenceException.becauseFindAllFailed(exception);
+      throw PersistenceException.becauseUserFindAllFailed(exception);
     }
   }
 
@@ -125,16 +138,20 @@ public class UserRepositoryMySQL
   public void delete(final UserId userId) {
     try (final Connection connection = dataSource.getConnection();
          final PreparedStatement statement = connection.prepareStatement(SQL_DELETE)) {
+
       statement.setString(1, userId.value());
       statement.executeUpdate();
+
     } catch (final SQLException exception) {
-      throw PersistenceException.becauseDeleteFailed(userId.value(), exception);
+      throw PersistenceException.becauseUserDeleteFailed(
+              userId.value(), exception);
     }
   }
 
   private void executeSave(final UserPersistenceDto dto) {
     try (final Connection connection = dataSource.getConnection();
          final PreparedStatement statement = connection.prepareStatement(SQL_INSERT)) {
+
       statement.setString(1, dto.id());
       statement.setString(2, dto.name());
       statement.setString(3, dto.email());
@@ -143,7 +160,8 @@ public class UserRepositoryMySQL
       statement.setString(6, dto.status());
       statement.executeUpdate();
     } catch (final SQLException exception) {
-      throw PersistenceException.becauseSaveFailed(dto.id(), exception);
+      throw PersistenceException.becauseUserSaveFailed(
+              dto.id(), exception);
     }
   }
 
@@ -158,12 +176,14 @@ public class UserRepositoryMySQL
       statement.setString(6, dto.id());
       statement.executeUpdate();
     } catch (final SQLException exception) {
-      throw PersistenceException.becauseUpdateFailed(dto.id(), exception);
+      throw PersistenceException.becauseUserUpdateFailed(
+              dto.id(), exception);
     }
   }
 
   private UserModel findByIdOrFail(final UserId userId) {
     return getById(userId)
-        .orElseThrow(() -> UserNotFoundException.becauseIdWasNotFound(userId.value()));
+            .orElseThrow(() -> UserNotFoundException
+                    .becauseIdWasNotFound(userId.value()));
   }
 }
