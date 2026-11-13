@@ -1,3 +1,4 @@
+
 services:
   mysql:
     image: mysql:8.4
@@ -6,8 +7,6 @@ services:
       MYSQL_USER: users_app
       MYSQL_PASSWORD: local_users_password
       MYSQL_ROOT_PASSWORD: local_root_password
-    ports:
-      - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
@@ -42,8 +41,6 @@ services:
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Gestion de Usuarios}
       JWT_SECRET: ${JWT_SECRET:-ZGV2ZWxvcG1lbnQtb25seS1qd3Qtc2VjcmV0LW11c3QtYmUtcmVwbGFjZWQ=}
       JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-900}
-    ports:
-      - "8080:8080"
     depends_on:
       mysql:
         condition: service_healthy
